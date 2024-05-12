@@ -31,7 +31,7 @@ Wikipediaの検索、Bing検索の結果を使用してWikipedia記事風のア�
 - [Graph Chain-of-Thought: Augmenting Large Language Models by Reasoning on Graphs](https://arxiv.org/abs/2404.07103)
 - [Assisting in Writing Wikipedia-like Articles From Scratch with Large Language Models](https://arxiv.org/abs/2402.14207)
 - [Soft precision and recall](https://www.sciencedirect.com/science/article/pii/S0167865523000296)
-
+- [A Human-Inspired Reading Agent with Gist Memory of Very Long Contexts](https://read-agent.github.io/)
 ---
 
 ## Key Features
@@ -135,51 +135,6 @@ Search 3: Athens and Aetolia, upon hearing of the death of the king, rebelled, i
 
 - 5. generate_detailed_outline: アウトラインに詳細な説明を加える
 
-```
-# Wars of the Diadochi
-
-## Introduction
-The Wars of the Diadochi refer to the series of conflicts fought among the generals of Alexander the Great, known as the Diadochi or Successors, following the death of the legendary conqueror in 323 BC. These power struggles aimed to determine who would succeed Alexander in ruling over his vast empire that stretched from Greece to India. The period of these wars lasted from 322 to 281 BC and marked a turbulent era in ancient history as the Diadochi vied for control and dominance.
-
-## Background
-Alexander the Great, one of history's most renowned military commanders, had established a vast empire through his conquests that spanned across significant regions of the ancient world, including Greece, Egypt, Persia, and parts of the Indian subcontinent. Upon his untimely death in Babylon in 323 BC, his empire faced fragmentation, leading to a power struggle among his generals, the Diadochi, who sought to claim territories and power for themselves. The term "Diadochi" comes from the Greek word meaning "successors," reflecting their roles as contenders for Alexander's legacy.
-
-## Causes of the Wars
-The Wars of the Diadochi were primarily fueled by the ambitions and rivalries among the Diadochi generals. Disputes over the division of Alexander's extensive empire, disagreements on rightful succession, and conflicting interests in securing power and territories led to a series of confrontations and battles. The ambitions of key figures such as Antipater, Craterus, Ptolemy, Seleucus, and Antigonus drove the conflicts as each sought to expand their influence and establish their authority.
-
-## Major Battles and Conflicts
-### Lamian War (323-322 BC)
-The Lamian War, triggered by the rebellions of Athens and Aetolia following Alexander's death, marked the beginning of the Wars of the Diadochi. This conflict, named after the town of Lamia in central Greece, saw the intervention of generals Antipater and Craterus to suppress the rebellions. The decisive Battle of Crannon in 322 BC resulted in the defeat of the Athenians and the death of their commander Leosthenes, consolidating the authority of the Diadochi.
-
-### Battle of Crannon
-The Battle of Crannon in 322 BC was a crucial engagement during the Lamian War. The forces led by Antipater and Craterus clashed with the rebellious Athenians and their allies, resulting in a significant victory for the Diadochi. The defeat of the rebels at Crannon solidified the control of the Diadochi over Greece and marked a turning point in the early phase of the Wars of the Diadochi.
-
-## Key Figures
-### Alexander the Great
-Alexander the Great, the famed Macedonian king and conqueror, played a pivotal role in shaping the ancient world through his military campaigns and empire-building. His untimely death at a young age led to the power struggles among his generals, setting the stage for the Wars of the Diadochi.
-
-### Diadochi Generals
-The Diadochi generals, including figures like Antipater, Craterus, Ptolemy, Seleucus, and Antigonus, were key players in the conflicts that ensued after Alexander's death. Each general commanded significant territories and armies, contributing to the complex dynamics of the power struggles and territorial disputes during the Wars of the Diadochi.
-
-## Consequences
-The Wars of the Diadochi resulted in the division of Alexander's empire among the competing generals, leading to the establishment of several Hellenistic kingdoms that would shape the political landscape of the ancient world for centuries to come. The conflicts and power shifts during this period had a lasting impact on the regions involved, influencing cultural, political, and military developments in the aftermath of Alexander's reign.
-
-## Impact on Regions
-The Wars of the Diadochi had profound effects on regions such as Greece, Asia Minor, Egypt, and the Near East. The struggles for power and control reshaped the political map of these territories, leading to the rise of new kingdoms and dynasties that would dominate the Hellenistic era. The cultural exchanges and transformations that occurred as a result of these conflicts left a lasting imprint on the societies and civilizations of the time.
-
-## Historiography
-Ancient and modern sources provide valuable insights into the Wars of the Diadochi, offering different perspectives on the events and key figures involved. Historians and scholars have studied these conflicts extensively, analyzing the motivations of the Diadochi, the military strategies employed, and the broader implications of the power struggles for the ancient world. Their interpretations and analyses contribute to our understanding of this turbulent period in history.
-
-## References
-For further reading and in-depth research on the Wars of the Diadochi, refer to primary sources from ancient historians such as Plutarch, Diodorus Siculus, and Arrian, as well as modern scholarly works by renowned historians specializing in ancient warfare and the Hellenistic period.
-
-## See Also
-Explore related topics such as Alexander the Great, the Hellenistic period, and Ancient Greek warfare to gain a comprehensive understanding of the context and significance of the Wars of the Diadochi within the broader historical narrative of the ancient world.
-
-## External Links
-For additional resources and articles on the Wars of the Diadochi, consider exploring online archives, academic journals, and museum exhibitions dedicated to ancient history and military conflicts of the Hellenistic era.
-```
-
 - 6. translate_to_japanese: アウトラインにを日本語に翻訳
 
 ```
@@ -233,6 +188,7 @@ For additional resources and articles on the Wars of the Diadochi, consider expl
 	- soft_precision: `0.5700739091639646`
 	- soft_recall: `0.5700739091639646`
 
+![general_report_link.gif](./general_report_link.gif)
 
 ---
 

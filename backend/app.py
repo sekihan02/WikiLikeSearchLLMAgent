@@ -1,7 +1,9 @@
+import re
 import os
 import json
 import warnings
 import requests
+from bs4 import BeautifulSoup
 
 from flask import Flask, request, jsonify
 from flask_cors import CORS
@@ -152,38 +154,38 @@ def generate_wiki_outline(model_name, summary_text, related_search_results):
     return outline
 
 
-def generate_detailed_outline(model_name, outline, summary_text, related_search_results):
-    """
-    Given a summary and related search results, enhance a Wikipedia page outline with detailed descriptions.
+# def generate_detailed_outline(model_name, outline, summary_text, related_search_results):
+#     """
+#     Given a summary and related search results, enhance a Wikipedia page outline with detailed descriptions.
     
-    Parameters:
-    model_name (str): The model to be used for generating the descriptions.
-    summary_text (str): Summary text providing a concise overview of the topic.
-    related_search_results (str): Text containing related search results or additional contextual information.
-    outline (str): The basic outline of the Wikipedia page.
+#     Parameters:
+#     model_name (str): The model to be used for generating the descriptions.
+#     summary_text (str): Summary text providing a concise overview of the topic.
+#     related_search_results (str): Text containing related search results or additional contextual information.
+#     outline (str): The basic outline of the Wikipedia page.
     
-    Returns:
-    str: The enhanced outline with detailed descriptions for each section.
-    """
-    prompt = [
-        {"role": "system", "content": "You are tasked with enhancing a Wikipedia page outline by integrating detailed descriptions based on a given summary and related search results."},
-        {"role": "system", "content": "Here is the basic outline of the page you need to expand with detailed explanations:"},
-        {"role": "user", "content": outline},
-        {"role": "system", "content": "Use the following summary and related search results to provide detailed descriptions for each section of the outline."},
-        {"role": "user", "content": f"Summary: {summary_text}"},
-        {"role": "user", "content": f"Related Search Results: {related_search_results}"},
-        {"role": "system", "content": "Based on the summary and related search results, please add a comprehensive explanation for each section of the outline that includes historical context, significance of events, and relevant interpretations."}
-    ]
+#     Returns:
+#     str: The enhanced outline with detailed descriptions for each section.
+#     """
+#     prompt = [
+#         {"role": "system", "content": "You are tasked with enhancing a Wikipedia page outline by integrating detailed descriptions based on a given summary and related search results."},
+#         {"role": "system", "content": "Here is the basic outline of the page you need to expand with detailed explanations:"},
+#         {"role": "user", "content": outline},
+#         {"role": "system", "content": "Use the following summary and related search results to provide detailed descriptions for each section of the outline."},
+#         {"role": "user", "content": f"Summary: {summary_text}"},
+#         {"role": "user", "content": f"Related Search Results: {related_search_results}"},
+#         {"role": "system", "content": "Based on the summary and related search results, please add a comprehensive explanation for each section of the outline that includes historical context, significance of events, and relevant interpretations."}
+#     ]
     
-    response = client.chat.completions.create(
-        model=model_name,
-        messages=prompt,
-        temperature=TEMPERATURE,
-    )
+#     response = client.chat.completions.create(
+#         model=model_name,
+#         messages=prompt,
+#         temperature=TEMPERATURE,
+#     )
     
-    detailed_outline = response.choices[0].message.content
+#     detailed_outline = response.choices[0].message.content
     
-    return detailed_outline
+#     return detailed_outline
 
 def translate_to_japanese(model_name, detailed_outline):
     """
@@ -212,14 +214,217 @@ def translate_to_japanese(model_name, detailed_outline):
     
     return translated_outline
 
+def split_outline_into_sections(outline_text):
+    # アウトラインテキストを行に分割
+    lines = outline_text.split('\n')
+    
+    # 各セクションとサブセクションを保存するリスト
+    sections = []
+    
+    # 現在のセクションとサブセクションを追跡
+    current_section = None
+    current_subsection = None
+    
+    # 各行を処理
+    for line in lines:
+        if line.startswith('# '):  # 新しいセクション
+            if current_section:
+                sections.append(current_section)
+            current_section = {'title': line[2:], 'content': [], 'subsections': []}
+        elif line.startswith('## '):  # 新しいサブセクション
+            if current_subsection:
+                if current_section:
+                    current_section['subsections'].append(current_subsection)
+            current_subsection = {'title': line[3:], 'content': []}
+        elif line.startswith('- '):  # サブセクションの内容
+            if current_subsection is not None:
+                current_subsection['content'].append(line[2:])
+        else:
+            continue  # 空行やその他の行は無視
+
+    # 最後のセクションとサブセクションを追加
+    if current_subsection:
+        if current_section:
+            current_section['subsections'].append(current_subsection)
+    if current_section:
+        sections.append(current_section)
+    
+    return sections
+
+def add_search_content(model_name, title, sub_title, content):
+    
+    # {"role": "system", "content": f"Generate contexts that are different from the already existing {content}, and are related to {title} and {sub_title}."},
+    
+    prompt = [
+        {"role": "system", "content": f"The title and its subtitles provide the context of the subtitles explaining them. Within this context, further investigative contexts are created that are related to the title and its subtitles."},
+        {"role": "system", "content": "Generate contexts that are brief, about five words each, and no more than four types."},
+        {"role": "user", "content": f"Title: {title}"},
+        {"role": "user", "content": f"Sub_title: {sub_title}"},
+        {"role": "user", "content": f"content: {content}"},
+    ]
+    
+    response = client.chat.completions.create(
+        model=model_name,
+        messages=prompt,
+        temperature=TEMPERATURE,
+    )
+    
+    search_content = response.choices[0].message.content
+    
+    return search_content
+
+def fetch_text_from_url(url_link):
+    try:
+        response = requests.get(url_link, allow_redirects=True, timeout=10)
+        # レスポンスのステータスコードが200以外の場合はエラーを表示して処理を終了
+        if response.status_code != 200:
+            return 'Error: Failed to retrieve the content'
+        
+        # HTMLの解析
+        soup = BeautifulSoup(response.text, 'html.parser')
+        
+        # <p> と <li> タグのテキストを取得する
+        paragraphs = soup.find_all('p')
+        list_items = soup.find_all('li')
+        
+        # <p> と <li> のテキストを結合する
+        text = ' '.join([para.get_text() for para in paragraphs + list_items])
+        return text
+
+    except requests.exceptions.TooManyRedirects:
+        print("Too many redirects encountered.")
+        return 'Error: Too many redirects'
+    except requests.RequestException as e:
+        print(f"An error occurred: {e}")
+        return f'Error: {e}'
+
+
+def generate_search_content_summary(model_name, search_quary, content):
+    
+    prompt = [
+        {"role": "system", "content": f"Please shorten the following sentences around the keyword description."},
+        {"role": "user", "content": f"keyword: {search_quary}"},
+        {"role": "user", "content": f"Sentence: {content}"},
+        {"role": "user", "content": "Shortened sentences:"},
+    ]
+    
+    response = client.chat.completions.create(
+        model=model_name,
+        messages=prompt,
+        temperature=TEMPERATURE,
+    )
+    
+    short_sentence = response.choices[0].message.content
+    
+    return short_sentence
+
+def update_subsections_with_descriptions(sections):
+    url_link_list = []
+    # 各サブセクションに説明を追加
+    for section in sections:
+        page_title = section['title']
+        print("page_title", page_title)
+        for subsection in section['subsections']:
+            page_sub_title = subsection['title']
+            print("page_sub_title", page_sub_title)
+            # 既存のcontentリストに対して説明を追加（説明の例は仮のものです）
+            updated_content = []
+            for content in subsection['content']:
+                content_text = content
+                # 生成された質問のリストごとに検索を実施
+                articles_q_content = []
+
+                query_info = page_title + " " + page_sub_title + " " + content_text
+                search_query = generate_search_queries(MODEL_NAME, query_info, "one")
+                s_q = search_query
+                # Wikipediaを除外する検索クエリの追加
+                search_query += " -site:wikipedia.org"
+
+                params = {'q': search_query, 'mkt': 'en', 'count': 3}
+                headers = {'Ocp-Apim-Subscription-Key': api_key}
+                r = requests.get(url, headers=headers, params=params)
+
+                try:
+                    # 検索結果を取得
+                    results = r.json()['webPages']['value']
+                except KeyError:
+                    # 'webPages' キーが見つからない場合、このループの残りの処理をスキップし、次のループへ進む
+                    continue
+                # 結果を連結して回答を生成
+                ans = ""
+                links = []
+                for result in results:
+                    ans += result['snippet']
+                    links.append(result['url'])
+
+                articles_q_content.append({
+                    'question' : s_q,
+                    'answer' : ans,
+                    'links' : links,
+                })
+                url_text = ""
+                for article in articles_q_content:
+                    url_links = article['links']
+                    url_link_list.append(url_links)
+                    for url_link in url_links:
+                        url_text = url_text + "\n" + fetch_text_from_url(url_link)
+                content_summary = generate_search_content_summary(MODEL_NAME, article['question'], url_text)
+
+                content_description = f"{content}:\n{content_summary}"
+                print(content_description)
+                updated_content.append(content_description)
+            subsection['content'] = updated_content
+    return url_link_list, sections
+
+def reconstruct_outline(sections):
+    # 更新されたアウトラインを再構成
+    outline_text = ""
+    for section in sections:
+        outline_text += f"# {section['title']}\n\n"
+        for subsection in section['subsections']:
+            outline_text += f"## {subsection['title']}\n"
+            for content in subsection['content']:
+                if content[0] == "-":
+                    outline_text += f"{content}\n"
+                else:
+                    outline_text += f"- {content}\n"
+            outline_text += "\n"
+    return outline_text
+
+def reconstruct_outline_japanese(sections):
+    # 更新されたアウトラインを再構成
+    outline_text = ""
+    for section in sections:
+        outline_text += f"# {section['title']}\n\n"
+        print(f"# {section['title']}")
+        for subsection in section['subsections']:
+            outline_text += f"## {subsection['title']}\n"
+            print(f"# {outline_text}")
+            for content in subsection['content']:
+                translated_outline = translate_to_japanese(MODEL_NAME, content)
+                print(f"- {translated_outline}")
+                outline_text += f"- {translated_outline}\n"
+                
+            outline_text += "\n"
+    return outline_text
+
 def remove_duplicates_keep_order(original_list):
-    seen = set()
-    unique_list = []
-    for item in original_list:
-        if item not in seen:
-            unique_list.append(item)
-            seen.add(item)
-    return unique_list
+    # seen = set()
+    # unique_list = []
+    # for item in original_list:
+    #     if item not in seen:
+    #         unique_list.append(item)
+    #         seen.add(item)
+    # return unique_list
+    # 全リンクを一つのセットに統合する
+    unique_links = set()
+    for sublist in original_list:
+        unique_links.update(sublist)  # 各サブリストのリンクを追加
+
+    # セットをリストに変換
+    consolidated_list = list(unique_links)
+    
+    return consolidated_list
 
 def get_embedding(text, model="text-embedding-3-small"):
     text = text.replace("\n", " ")
@@ -349,9 +554,12 @@ def chat():
         headers = {'Ocp-Apim-Subscription-Key': api_key}
         r = requests.get(url, headers=headers, params=params)
 
-        # 検索結果を取得
-        results = r.json()['webPages']['value']
-        # 結果を連結して回答を生成
+        try:
+            # 検索結果を取得
+            results = r.json()['webPages']['value']
+        except KeyError:
+            # 'webPages' キーが見つからない場合、このループの残りの処理をスキップし、次のループへ進む
+            continue
         ans = ""
         links = []
         for result in results:
@@ -403,7 +611,34 @@ def chat():
     current_message_id = intermediate_id
     app.logger.debug(f"outline\n{outline_text}...")
     # 生成したアウトラインに詳細な説明を加える
-    detailed_outline = generate_detailed_outline(MODEL_NAME, outline_text, summary_text, related_search_results)
+    # detailed_outline = generate_detailed_outline(MODEL_NAME, outline_text, summary_text, related_search_results)
+    sections = split_outline_into_sections(outline_text)
+    # sections リストをループして各 section にアクセス
+    for section in sections:
+        print("Section:", section['title'])
+        # 各 section の中の subsections リストをループして各 subsection にアクセス
+        for subsection in section['subsections']:
+            print("  Subsection:", subsection['title'])
+
+            # subsection の現在の content を取得
+            content_list = subsection.get('content', []).copy()
+
+            # 追加するコンテンツを生成
+            search_content = add_search_content(MODEL_NAME, section['title'], subsection['title'], str(content_list))
+            print(search_content.split("\n"))
+            
+            # 追加するコンテンツを既存の content_list に統合
+            content_list.extend(search_content.split("\n"))
+            
+            # 更新した content_list を subsection の content に代入
+            subsection['content'] = content_list
+
+            # 更新後の content を表示
+            print("Updated Content:", subsection['content'])
+    url_link_descript_list, updated_sections = update_subsections_with_descriptions(sections)
+    # 更新されたアウトラインを再構成
+    detailed_outline = reconstruct_outline(updated_sections)
+
     # 中間ノードを追加
     intermediate_id = current_message_id + 1
     nodes.append({'id': intermediate_id, 'name': f"add detailed outline\n{detailed_outline[:64]}...", 'color': '#1717c5'})
@@ -411,9 +646,15 @@ def chat():
     current_message_id = intermediate_id
     app.logger.debug(f"add detailed outline\n{detailed_outline[:64]}...")
 
-    translated_outline = translate_to_japanese(MODEL_NAME, detailed_outline)
+    # translated_outline = translate_to_japanese(MODEL_NAME, detailed_outline)
+    # 更新されたアウトラインを再構成
+    translated_outline = reconstruct_outline_japanese(updated_sections)
     last_search_links = []
     last_search_links.append(articles_overview[0][0]['url'])
+
+    # コンテキスト追加リンク
+    for context_link in url_link_descript_list:
+        last_search_links.append(context_link)
 
     for link in related_search_links:
         last_search_links.append(link)
@@ -422,8 +663,11 @@ def chat():
     last_search_links = remove_duplicates_keep_order(last_search_links)
     translated_outline += "\n\n## 参考リンク\n"
 
+    # for link in last_search_links:
+    #     translated_outline += "- " + str(link) + "\n"
     for link in last_search_links:
-        translated_outline += "- " + str(link) + "\n"
+        if len(link) > 5:
+            translated_outline += "- " + str(link) + "\n"
 
     # 最終ノード (final_message) を追加
     final_similarity = current_message_id + 1
@@ -436,7 +680,8 @@ def chat():
 
     # 評価結果
     message_embedding = get_embedding(message, model=MODEL_ENBEDDING_NAME)
-    translated_embedding_outline = get_embedding(translated_outline, model=MODEL_ENBEDDING_NAME)
+    # translated_embedding_outline = get_embedding(translated_outline, model=MODEL_ENBEDDING_NAME)
+    translated_embedding_outline = get_embedding(translated_outline[:7000], model=MODEL_ENBEDDING_NAME)
     cosine_similarity_result = cosine_similarity(np.array(message_embedding).reshape(1, -1), np.array(translated_embedding_outline).reshape(1, -1))
     nodes.append({'id': final_similarity, 'name': f"cosine similarity: {str(cosine_similarity_result)}", 'color': '#0f0f5d'})
     edges.append({'source': current_message_id, 'target': final_similarity})
