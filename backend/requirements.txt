@@ -9,3 +9,5 @@ wikipedia==1.4.0
 openai==1.30.0
 numpy
 scikit-learn
+langdetect==1.0.9
+lingua-language-detector==2.0.2
